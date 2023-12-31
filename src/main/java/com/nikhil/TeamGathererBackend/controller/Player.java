@@ -67,12 +67,18 @@ public class Player {
     ResponseEntity<Object> leaveGame(@RequestBody Players player){
         Optional<Players> currPlayerOpt = Optional.ofNullable(repo.findByTeamIdAndUserId(player.getTeamId(), player.getUserId()));
         HashMap<String, Object> response = new HashMap<>();
-        if(currPlayerOpt.isPresent()) {
-            repo.deleteById(currPlayerOpt.get().getId());
-            teamsRepo.updateTeamsCurrentPlayers(player.getTeamId(), -1);
-            response.put("message", "Player left the team");
-        }else{
-            response.put("error", "Player not found in team");
+        try{
+            if(currPlayerOpt.isPresent()) {
+                repo.deleteById(currPlayerOpt.get().getId());
+                System.out.println("Team id is: "+player.getTeamId());
+                teamsRepo.updateTeamsCurrentPlayers(player.getTeamId(), -1);
+                response.put("message", "Player left the team");
+            }else{
+                response.put("error", "Player not found in team");
+            }
+        }catch (Exception e){
+            response.put("error",e.getMessage());
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
