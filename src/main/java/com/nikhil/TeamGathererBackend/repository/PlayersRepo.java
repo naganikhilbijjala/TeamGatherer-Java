@@ -9,4 +9,10 @@ import java.util.List;
 public interface PlayersRepo extends JpaRepository<Players,Integer> {
     List<Players> findAll();
     List<Players> findByUserId(Integer userId);
+
+    List<Players> findByTeamId(Integer teamId);
+
+    Players findByTeamIdAndUserId(Integer teamId, Integer userId);
+
+    void deleteById(Integer id);
 }

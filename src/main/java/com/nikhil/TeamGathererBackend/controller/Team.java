@@ -1,7 +1,9 @@
 package com.nikhil.TeamGathererBackend.controller;
 
 import com.nikhil.TeamGathererBackend.customException.BusinessException;
+import com.nikhil.TeamGathererBackend.model.Players;
 import com.nikhil.TeamGathererBackend.model.Teams;
+import com.nikhil.TeamGathererBackend.repository.PlayersRepo;
 import com.nikhil.TeamGathererBackend.repository.TeamsRepo;
 import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.LoggerFactory;
@@ -15,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
+
 import org.slf4j.Logger;
 
 @RestController
@@ -24,43 +28,64 @@ public class Team {
     private static final Logger logger = LoggerFactory.getLogger(Team.class);
     @Autowired
     TeamsRepo repo;
+    @Autowired
+    PlayersRepo playersRepo;
 
     @PostMapping("teams")
-    public Teams addTeam(@RequestBody Teams team){
+    public Teams addTeam(@RequestBody Teams team) {
         logger.info(String.valueOf(team));
         return repo.save(team);
     }
+
     //TODO: Dashobord GetTeams is not working
     @GetMapping("teams")
-    public List<Teams> getTeams(){
-        try{
+    public List<Teams> getTeams() {
+        try {
             List<Teams> teams = repo.findAll();
-            if(teams.isEmpty()){
+            if (teams.isEmpty()) {
                 throw new BusinessException("604", "Hey list is completely empty, we have nothing to return");
             }
             return teams;
-        }catch (Exception e){
-            throw new BusinessException("605", "Something went wrong in service layer while fetching all employees "+e.getMessage());
+        } catch (Exception e) {
+            throw new BusinessException("605", "Something went wrong in service layer while fetching all employees " + e.getMessage());
         }
     }
 
+    @GetMapping("/getGameWithPlayers")
+    public ResponseEntity<Object> getGameWithPlayers(@RequestParam int id)
+    {
+        Optional<Teams> gameOpt = repo.findById(id);
+        HashMap<String,Object> response = new HashMap<>();
+        if(gameOpt.isPresent()){
+            Teams game = gameOpt.get();
+            response.put("game", game);
+            List<Players> players;
+            players = playersRepo.findByTeamId(game.getId());
+            response.put("players", players);
+        }else{
+            response.put("error", "Game not found");
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
     @DeleteMapping("teams/{teamId}")
-    public ResponseEntity<Object> deleteTeam(@PathVariable("teamId") int teamId){
+    public ResponseEntity<Object> deleteTeam(@PathVariable("teamId") int teamId) {
         try {
             repo.deleteById(teamId);
             if (repo.existsById(teamId)) {
                 throw new EntityNotFoundException("Team with ID " + teamId + " not found");
             }
-            HashMap<String,Object> response = new HashMap<>();
+            HashMap<String, Object> response = new HashMap<>();
             response.put("message", "Team deleted");
             return new ResponseEntity<>(response, HttpStatus.OK);
-        }catch (EntityNotFoundException ex){
+        } catch (EntityNotFoundException ex) {
             HashMap<String, Object> response = new HashMap<>();
-            response.put("error",ex.getMessage());
+            response.put("error", ex.getMessage());
             return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
-        }catch (Exception e){
+        } catch (Exception e) {
             HashMap<String, Object> response = new HashMap<>();
-            response.put("error","An error occured: "+e.getMessage());
+            response.put("error", "An error occured: " + e.getMessage());
 
             return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
